@@ -1,0 +1,48 @@
+// D1 (SQLite) schema. Idempotent; applied on the first API request of each isolate (CREATE ... IF NOT EXISTS).
+// Every tenant table carries org_id, and every tenant query in worker.ts filters by the org resolved from the
+// caller's verified membership, never by an id the client sends.
+export const SCHEMA_VERSION = 1;
+export const SCHEMA: string[] = [
+  `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, clerk_id TEXT NOT NULL UNIQUE, email TEXT, name TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended')), is_super INTEGER NOT NULL DEFAULT 0,
+    prefs TEXT NOT NULL DEFAULT '{}', created_at INTEGER NOT NULL, last_seen INTEGER)`,
+  `CREATE INDEX IF NOT EXISTS users_email ON users(email)`,
+  `CREATE TABLE IF NOT EXISTS orgs (id INTEGER PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, industry TEXT NOT NULL DEFAULT 'biz',
+    accent TEXT NOT NULL DEFAULT 'saffron', status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','suspended')),
+    plan TEXT NOT NULL DEFAULT 'free', created_by INTEGER NOT NULL REFERENCES users(id), created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS memberships (id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, role TEXT NOT NULL, department_id INTEGER,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','disabled')), created_at INTEGER NOT NULL, UNIQUE (org_id, user_id))`,
+  `CREATE INDEX IF NOT EXISTS memberships_user ON memberships(user_id)`,
+  `CREATE TABLE IF NOT EXISTS invites (id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE, email TEXT NOT NULL,
+    role TEXT NOT NULL, created_by INTEGER NOT NULL, created_at INTEGER NOT NULL, accepted_at INTEGER, revoked_at INTEGER)`,
+  `CREATE INDEX IF NOT EXISTS invites_email ON invites(email)`,
+  `CREATE TABLE IF NOT EXISTS custom_roles (id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE, key TEXT NOT NULL,
+    spec TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, UNIQUE (org_id, key))`,
+  `CREATE TABLE IF NOT EXISTS departments (id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE, name TEXT NOT NULL,
+    created_at INTEGER NOT NULL, UNIQUE (org_id, name))`,
+  `CREATE TABLE IF NOT EXISTS org_modules (org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE, module_key TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1, config TEXT NOT NULL DEFAULT '{}', perms TEXT NOT NULL DEFAULT '{}', activated_by INTEGER,
+    activated_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY (org_id, module_key))`,
+  `CREATE TABLE IF NOT EXISTS records (id INTEGER PRIMARY KEY, org_id INTEGER NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+    module_key TEXT NOT NULL, entity_key TEXT NOT NULL, title TEXT NOT NULL, status TEXT, data TEXT NOT NULL, search TEXT NOT NULL DEFAULT '',
+    created_by INTEGER NOT NULL, updated_by INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS records_scope ON records(org_id, module_key, entity_key, updated_at)`,
+  `CREATE INDEX IF NOT EXISTS records_org_created ON records(org_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS audit_logs (id INTEGER PRIMARY KEY, org_id INTEGER, user_id INTEGER, action TEXT NOT NULL, target TEXT,
+    target_id TEXT, meta TEXT NOT NULL DEFAULT '{}', ip TEXT, created_at INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS audit_org ON audit_logs(org_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY, org_id INTEGER, user_id INTEGER NOT NULL, kind TEXT NOT NULL, title TEXT NOT NULL,
+    body TEXT NOT NULL DEFAULT '', link TEXT, read_at INTEGER, created_at INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS notif_user ON notifications(user_id, read_at, created_at)`,
+  `CREATE TABLE IF NOT EXISTS rate_limits (bucket TEXT PRIMARY KEY, window_start INTEGER NOT NULL, count INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS feature_flags (key TEXT PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '', updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS support_tickets (id INTEGER PRIMARY KEY, org_id INTEGER, user_id INTEGER NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','answered','closed')), reply TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
+];
+export const DEFAULT_FLAGS: [string, string][] = [
+  ['billing', 'Paid plans and premium modules. Off until a payment provider is connected.'],
+  ['public_signup', 'New people can create an account and an organisation.'],
+  ['csv_import', 'CSV import in module workspaces.'],
+];

@@ -1,0 +1,80 @@
+@import '@fontsource-variable/plus-jakarta-sans';
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/600.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Palette: Coolors "Dark Sunset" (335C67 FFF3B0 E09F3E 9E2A2B 540B0E) + derived surfaces. RGB triplets for alpha. */
+:root {
+  --bg: 246 241 231; --bg-2: 238 230 214; --surface: 251 248 241; --surface-2: 243 237 225;
+  --ink: 20 38 43; --ink-2: 44 66 72; --muted: 77 97 104; --line: 222 212 192;
+  --primary: 51 92 103; --on-primary: 255 248 226;
+  --brand: 176 112 22; --on-brand: 255 250 236;           /* saffron, deepened for 4.5:1 on paper */
+  --danger: 158 42 43; --ok: 46 110 84; --warn: 150 96 14;
+  --glass: 251 248 241; --glass-a: .64; --glass-edge: 255 255 255; --glass-edge-a: .55; --shadow: 40 30 10;
+  --contour: 51 92 103; --contour-a: .10;
+  color-scheme: light;
+}
+.dark {
+  --bg: 11 22 25; --bg-2: 15 30 34; --surface: 19 37 42; --surface-2: 26 49 56;
+  --ink: 243 238 223; --ink-2: 214 208 190; --muted: 163 180 182; --line: 43 66 72;
+  --primary: 224 159 62; --on-primary: 26 17 4;
+  --brand: 224 159 62; --on-brand: 26 17 4;
+  --danger: 230 116 108; --ok: 120 196 160; --warn: 236 186 92;
+  --glass: 19 37 42; --glass-a: .58; --glass-edge: 255 243 176; --glass-edge-a: .10; --shadow: 0 0 0;
+  --contour: 255 243 176; --contour-a: .06;
+  color-scheme: dark;
+}
+/* Organisation accent presets (Settings → Appearance), all drawn from the same Coolors palette */
+[data-accent='teal'] { --brand: 51 92 103; --on-brand: 255 248 226; }
+.dark[data-accent='teal'] { --brand: 127 176 188; --on-brand: 9 24 28; }
+[data-accent='auburn'] { --brand: 158 42 43; --on-brand: 255 243 228; }
+.dark[data-accent='auburn'] { --brand: 226 120 110; --on-brand: 32 6 6; }
+[data-accent='vanilla'] { --brand: 120 98 20; --on-brand: 255 250 225; }
+.dark[data-accent='vanilla'] { --brand: 255 243 176; --on-brand: 36 30 6; }
+
+html, body, #root { height: 100%; }
+body { @apply bg-bg text-ink font-sans antialiased; font-feature-settings: 'ss01', 'cv11'; }
+/* contour-line backdrop (hill map), the thing the glass chrome sits over; static, no orbs */
+.contours { background-color: rgb(var(--bg)); position: relative; isolation: isolate; }
+.contours::before { content: ''; position: fixed; inset: 0; pointer-events: none; background: rgb(var(--contour) / var(--contour-a)); mask-image: url('/contours.svg'); -webkit-mask-image: url('/contours.svg'); mask-size: 1200px auto; -webkit-mask-size: 1200px auto; z-index: 0; }
+
+@layer components {
+  /* Liquid Glass: navigation, command palette, dialogs only. Content panels stay opaque for legibility. */
+  .glass {
+    background: rgb(var(--glass) / var(--glass-a));
+    backdrop-filter: blur(18px) saturate(165%); -webkit-backdrop-filter: blur(18px) saturate(165%);
+    border: 1px solid rgb(var(--glass-edge) / var(--glass-edge-a));
+    box-shadow: inset 0 1px 0 rgb(var(--glass-edge) / calc(var(--glass-edge-a) + .1)), inset 0 -1px 0 rgb(var(--line) / .4), 0 18px 40px -30px rgb(var(--shadow) / .6);
+  }
+  .panel { @apply bg-surface border border-line rounded-panel; }
+  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-[.14em] text-muted; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-ctl px-3.5 h-9 text-sm font-semibold transition-colors duration-150 ease-glide disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none whitespace-nowrap; }
+  .btn-primary { @apply btn bg-primary text-on-primary hover:brightness-110; }
+  .btn-brand { @apply btn bg-brand text-on-brand hover:brightness-110; }
+  .btn-ghost { @apply btn text-ink-2 hover:bg-surface-2; }
+  .btn-line { @apply btn border border-line bg-surface hover:bg-surface-2 text-ink; }
+  .btn-danger { @apply btn bg-danger text-white hover:brightness-110; }
+  .input { @apply w-full h-9 rounded-ctl border border-line bg-surface px-3 text-sm text-ink placeholder:text-muted/80 transition-shadow; }
+  .input:focus { outline: none; box-shadow: 0 0 0 2px rgb(var(--brand) / .55); border-color: rgb(var(--brand)); }
+  textarea.input { @apply h-auto py-2 min-h-[84px]; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-[11px] font-semibold text-ink-2 bg-surface-2/60; }
+  .kbd { @apply font-mono text-[10px] px-1.5 py-0.5 rounded border border-line bg-surface-2 text-muted; }
+  .link { @apply text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary; }
+  .skeleton { @apply rounded bg-surface-2; background-image: linear-gradient(90deg, transparent, rgb(var(--line) / .6), transparent); background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+}
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+:focus-visible { outline: 2px solid rgb(var(--brand)); outline-offset: 2px; }
+::selection { background: #FFF3B0; color: #14262B; }
+.tabular { font-variant-numeric: tabular-nums; }
+table th { font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+@media (prefers-reduced-transparency: reduce) { .glass { background: rgb(var(--surface)); backdrop-filter: none; -webkit-backdrop-filter: none; } }
+/* Clerk widgets inherit our type */
+.cl-rootBox { width: 100%; }
+.cl-card { box-shadow: none !important; }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

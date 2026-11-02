@@ -1,0 +1,1 @@
+try{var t=localStorage.getItem('bw-theme')||'system';var d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);var a=localStorage.getItem('bw-accent');if(a)document.documentElement.dataset.accent=a}catch(e){}
